@@ -13,43 +13,34 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Unzip Project and Build
+      - name: Extract all zips if any
         run: |
-          if [ -f "SafeKids-Complete-Project.zip" ]; then
-            unzip -o SafeKids-Complete-Project.zip
-          fi
-          
-          # Find where android folder or gradlew is located after unzipping
-          ANDROID_DIR=$(find . -type d -name "android" | head -n 1)
-          if [ -n "$ANDROID_DIR" ]; then
-            cd "$ANDROID_DIR"
-          else
-            cd $(dirname $(find . -name "gradlew" | head -n 1))
-          fi
+          for z in *.zip; do
+            [ -f "$z" ] && unzip -o "$z"
+          done
+          ls -la
 
-          # Install root dependencies if package.json exists nearby
-          cd ..
-          if [ -f "package.json" ]; then
-            npm install || true
-            npm run build || true
+      - name: Locate and Build with Gradle
+        run: |
+          # Find gradlew file anywhere in the workspace
+          GRADLEW_FILE=$(find . -name "gradlew" -type f | head -n 1)
+          
+          if [ -z "$GRADLEW_FILE" ]; then
+            echo "Error: gradlew not found anywhere!"
+            exit 1
           fi
           
-          # Go back to android and build
-          if [ -d "android" ]; then
-            cd android
-          fi
+          # Get directory containing gradlew
+          PROJECT_DIR=$(dirname "$GRADLEW_FILE")
+          echo "Found gradlew in: $PROJECT_DIR"
           
+          cd "$PROJECT_DIR"
           chmod +x gradlew
           ./gradlew assembleDebug
 
