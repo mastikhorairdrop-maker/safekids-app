@@ -26,25 +26,26 @@ jobs:
           distribution: 'temurin'
 
       - name: Install Dependencies
-        working-directory: safekids-app
         run: |
+          cd safekids-app
           npm install
           npm install @capacitor/android
           npm install -g @capacitor/cli
 
       - name: Build Web App
-        working-directory: safekids-app
-        run: npm run build
+        run: |
+          cd safekids-app
+          npm run build
 
       - name: Add and Sync Capacitor Android
-        working-directory: safekids-app
         run: |
+          cd safekids-app
           npx cap add android || true
           npx cap sync android
 
       - name: Build APK with Gradle
-        working-directory: safekids-app/android
         run: |
+          cd safekids-app/android
           chmod +x gradlew
           ./gradlew assembleDebug
 
