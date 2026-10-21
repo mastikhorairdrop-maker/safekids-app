@@ -2,7 +2,8 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -10,42 +11,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Extract all zips if any
+      - name: Install Dependencies
         run: |
-          for z in *.zip; do
-            [ -f "$z" ] && unzip -o "$z"
-          done
-          ls -la
+          npm install
+          npm install @capacitor/android
+          npm install -g @capacitor/cli
 
-      - name: Locate and Build with Gradle
+      - name: Build Web App
+        run: npm run build
+
+      - name: Initialize Android Platform
         run: |
-          # Find gradlew file anywhere in the workspace
-          GRADLEW_FILE=$(find . -name "gradlew" -type f | head -n 1)
-          
-          if [ -z "$GRADLEW_FILE" ]; then
-            echo "Error: gradlew not found anywhere!"
-            exit 1
-          fi
-          
-          # Get directory containing gradlew
-          PROJECT_DIR=$(dirname "$GRADLEW_FILE")
-          echo "Found gradlew in: $PROJECT_DIR"
-          
-          cd "$PROJECT_DIR"
+          npx cap add android
+          npx cap sync android
+
+      - name: Build APK with Gradle
+        run: |
+          cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SafeKids-APK
-          path: '**/build/outputs/apk/debug/*.apk'
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
